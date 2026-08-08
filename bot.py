@@ -1,50 +1,35 @@
-import requests
-from bs4 import BeautifulSoup
-from datetime import datetime
-from zoneinfo import ZoneInfo
+¿from playwright.sync_api import sync_playwright
 
 URL = "https://embjpcol.rsvsys.jp/reservations/calendar"
 
-headers = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/150.0.0.0 Safari/537.36"
+with sync_playwright() as p:
+
+    browser = p.chromium.launch(headless=True)
+
+    page = browser.new_page(
+        user_agent=(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/150.0.0.0 Safari/537.36"
+        )
     )
-}
 
-response = requests.get(
-    URL,
-    headers=headers,
-    timeout=30
-)
+    print("Abriendo calendario...")
 
-print("Estado:", response.status_code)
+    page.goto(
+        URL,
+        wait_until="networkidle",
+        timeout=60000
+    )
 
-if response.status_code != 200:
-    raise Exception("No se pudo acceder al calendario")
+    print("Página cargada")
 
-soup = BeautifulSoup(response.text, "html.parser")
+    # Esperar a que el calendario aparezca
+    page.wait_for_timeout(5000)
 
-texto = soup.get_text(" ", strip=True)
+    texto = page.locator("body").inner_text()
 
-print("\n--- COMPROBACIÓN DE DISPONIBILIDAD ---")
+    print("\n--- CALENDARIO ---")
+    print(texto[:10000])
 
-if "Cupos disponibles" in texto:
-    print("🚨 HAY ALGUNA FECHA CON DISPONIBILIDAD")
-else:
-    print("❌ No se detectó disponibilidad")
-
-print("\n--- ESTADO DEL CALENDARIO ---")
-
-print("Cupos disponibles:",
-      texto.count("Cupos disponibles"))
-
-print("Completos:",
-      texto.count("Completos"))
-
-print("\n--- HORA COLOMBIA ---")
-
-ahora = datetime.now(ZoneInfo("America/Bogota"))
-
-print(ahora.strftime("%Y-%m-%d %H:%M:%S"))
+    browser.close()
