@@ -1,7 +1,9 @@
 import requests
 import re
 
-URL = "https://embjpcol.rsvsys.jp/reservations/calendar"
+BASE_URL = "https://embjpcol.rsvsys.jp"
+
+URL = BASE_URL + "/reservations/calendar"
 
 headers = {
     "User-Agent": (
@@ -11,39 +13,42 @@ headers = {
     )
 }
 
+# 1. Descargar la página
 response = requests.get(URL, headers=headers, timeout=30)
 
-print("Estado:", response.status_code)
+print("Estado página:", response.status_code)
 print("Tamaño HTML:", len(response.text))
 
-# Buscar scripts utilizados por la página
-scripts = re.findall(
-    r'<script[^>]+src=["\']([^"\']+)',
-    response.text,
-    re.IGNORECASE
+# 2. Descargar el JavaScript del calendario
+js_url = BASE_URL + "/assets/js/user/reservations/calendar.js?1763711289"
+
+js_response = requests.get(
+    js_url,
+    headers=headers,
+    timeout=30
 )
 
-print("\n--- SCRIPTS ---")
+print("\nEstado JavaScript:", js_response.status_code)
+print("Tamaño JavaScript:", len(js_response.text))
 
-for script in scripts:
-    print(script)
+# 3. Mostrar líneas relacionadas con las citas/calendario
+print("\n--- LÍNEAS IMPORTANTES DEL JAVASCRIPT ---")
 
-print("\n--- POSIBLES LLAMADAS AL CALENDARIO ---")
-
-# Buscar palabras relacionadas con la carga del calendario
-palabras = [
+keywords = [
+    "ajax",
     "calendar",
     "reservation",
-    "schedule",
-    "ajax",
-    "api",
-    "availability",
+    "reserve",
     "next",
-    "prev"
+    "prev",
+    "url",
+    "json",
+    "get",
+    "post"
 ]
 
-html = response.text.lower()
+for i, line in enumerate(js_response.text.splitlines(), 1):
+    line_lower = line.lower()
 
-for palabra in palabras:
-    cantidad = html.count(palabra)
-    print(f"{palabra}: {cantidad}")
+    if any(keyword in line_lower for keyword in keywords):
+        print(f"{i}: {line[:1000]}")
