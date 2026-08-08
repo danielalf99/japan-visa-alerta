@@ -1,9 +1,9 @@
 import requests
 import re
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
-BASE_URL = "https://embjpcol.rsvsys.jp"
-
-URL = BASE_URL + "/reservations/calendar"
+URL = "https://embjpcol.rsvsys.jp/reservations/calendar"
 
 headers = {
     "User-Agent": (
@@ -13,42 +13,45 @@ headers = {
     )
 }
 
-# 1. Descargar la página
-response = requests.get(URL, headers=headers, timeout=30)
-
-print("Estado página:", response.status_code)
-print("Tamaño HTML:", len(response.text))
-
-# 2. Descargar el JavaScript del calendario
-js_url = BASE_URL + "/assets/js/user/reservations/calendar.js?1763711289"
-
-js_response = requests.get(
-    js_url,
+response = requests.get(
+    URL,
     headers=headers,
     timeout=30
 )
 
-print("\nEstado JavaScript:", js_response.status_code)
-print("Tamaño JavaScript:", len(js_response.text))
+print("Estado:", response.status_code)
 
-# 3. Mostrar líneas relacionadas con las citas/calendario
-print("\n--- LÍNEAS IMPORTANTES DEL JAVASCRIPT ---")
+if response.status_code != 200:
+    raise Exception("No se pudo acceder al calendario")
 
-keywords = [
-    "ajax",
-    "calendar",
-    "reservation",
-    "reserve",
-    "next",
-    "prev",
-    "url",
-    "json",
-    "get",
-    "post"
-]
+# Texto de la página
+texto = response.text
 
-for i, line in enumerate(js_response.text.splitlines(), 1):
-    line_lower = line.lower()
+# Buscar cantidades de cupos
+patron = r"残\s*(\d+)\s*件"
 
-    if any(keyword in line_lower for keyword in keywords):
-        print(f"{i}: {line[:1000]}")
+resultados = re.findall(patron, texto)
+
+print("\n--- CUPOS DETECTADOS ---")
+
+if not resultados:
+    print("No se encontraron cupos en el HTML.")
+else:
+    for cupo in resultados:
+        print("Cupos encontrados:", cupo)
+
+# Hora de Colombia
+ahora = datetime.now(ZoneInfo("America/Bogota"))
+
+print("\n--- HORA DEL BOT ---")
+print(ahora.strftime("%Y-%m-%d %H:%M:%S"))
+
+# ¿Hay algún cupo?
+hay_cupo = any(int(cupo) > 0 for cupo in resultados)
+
+print("\n--- RESULTADO ---")
+
+if hay_cupo:
+    print("🚨 HAY CUPOS DISPONIBLES")
+else:
+    print("❌ No hay cupos disponibles")
