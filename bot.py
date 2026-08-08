@@ -1,5 +1,5 @@
 import requests
-import re
+from bs4 import BeautifulSoup
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -24,34 +24,27 @@ print("Estado:", response.status_code)
 if response.status_code != 200:
     raise Exception("No se pudo acceder al calendario")
 
-# Texto de la página
-texto = response.text
+soup = BeautifulSoup(response.text, "html.parser")
 
-# Buscar cantidades de cupos
-patron = r"残\s*(\d+)\s*件"
+texto = soup.get_text(" ", strip=True)
 
-resultados = re.findall(patron, texto)
+print("\n--- COMPROBACIÓN DE DISPONIBILIDAD ---")
 
-print("\n--- CUPOS DETECTADOS ---")
-
-if not resultados:
-    print("No se encontraron cupos en el HTML.")
+if "Cupos disponibles" in texto:
+    print("🚨 HAY ALGUNA FECHA CON DISPONIBILIDAD")
 else:
-    for cupo in resultados:
-        print("Cupos encontrados:", cupo)
+    print("❌ No se detectó disponibilidad")
 
-# Hora de Colombia
+print("\n--- ESTADO DEL CALENDARIO ---")
+
+print("Cupos disponibles:",
+      texto.count("Cupos disponibles"))
+
+print("Completos:",
+      texto.count("Completos"))
+
+print("\n--- HORA COLOMBIA ---")
+
 ahora = datetime.now(ZoneInfo("America/Bogota"))
 
-print("\n--- HORA DEL BOT ---")
 print(ahora.strftime("%Y-%m-%d %H:%M:%S"))
-
-# ¿Hay algún cupo?
-hay_cupo = any(int(cupo) > 0 for cupo in resultados)
-
-print("\n--- RESULTADO ---")
-
-if hay_cupo:
-    print("🚨 HAY CUPOS DISPONIBLES")
-else:
-    print("❌ No hay cupos disponibles")
