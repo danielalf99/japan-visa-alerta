@@ -18,8 +18,10 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Instalar dependencias
-        run: pip install -r requirements.txt
+      - name: Instalar dependencias y Chromium
+        run: |
+          pip install -r requirements.txt
+          python -m playwright install chromium
 
       - name: Revisar calendario
         run: python bot.py
