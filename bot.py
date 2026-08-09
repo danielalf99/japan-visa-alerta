@@ -20,30 +20,35 @@ with sync_playwright() as p:
 
     print("Página cargada.")
 
-    # Obtener todos los elementos que contienen "残"
     elementos = page.get_by_text(
         "残",
         exact=False
     )
 
-    cantidad = elementos.count()
+    print(
+        "\nElementos encontrados:",
+        elementos.count()
+    )
 
-    print("\nElementos de disponibilidad encontrados:", cantidad)
+    # Inspeccionar la primera celda
+    if elementos.count() > 0:
 
-    for i in range(cantidad):
+        primero = elementos.nth(0)
 
-        elemento = elementos.nth(i)
+        print("\n--- HTML DE LA PRIMERA CELDA ---")
 
-        try:
-            texto = elemento.inner_text()
-
-            print(
-                f"{i}: {texto}"
+        print(
+            primero.evaluate(
+                "(element) => element.outerHTML"
             )
+        )
 
-        except Exception as error:
-            print(
-                f"{i}: ERROR - {error}"
+        print("\n--- PADRE DE LA CELDA ---")
+
+        print(
+            primero.evaluate(
+                "(element) => element.parentElement.outerHTML"
             )
+        )
 
     browser.close()
