@@ -20,35 +20,15 @@ with sync_playwright() as p:
 
     print("Página cargada.")
 
-    elementos = page.get_by_text(
-        "残",
-        exact=False
-    )
+    # Buscar una celda cualquiera del calendario
+    celda = page.locator("p.c_cal_time_cell").first
+
+    print("\n--- ESTRUCTURA DEL CALENDARIO ---")
 
     print(
-        "\nElementos encontrados:",
-        elementos.count()
+        celda.evaluate(
+            "(element) => element.parentElement.parentElement.outerHTML"
+        )
     )
-
-    # Inspeccionar la primera celda
-    if elementos.count() > 0:
-
-        primero = elementos.nth(0)
-
-        print("\n--- HTML DE LA PRIMERA CELDA ---")
-
-        print(
-            primero.evaluate(
-                "(element) => element.outerHTML"
-            )
-        )
-
-        print("\n--- PADRE DE LA CELDA ---")
-
-        print(
-            primero.evaluate(
-                "(element) => element.parentElement.outerHTML"
-            )
-        )
 
     browser.close()
