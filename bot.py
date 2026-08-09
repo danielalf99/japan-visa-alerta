@@ -1,4 +1,6 @@
 from playwright.sync_api import sync_playwright
+import re
+from datetime import datetime
 
 URL = "https://embjpcol.rsvsys.jp/reservations/calendar"
 
@@ -20,29 +22,112 @@ with sync_playwright() as p:
 
     print("Página cargada.")
 
-    filas = page.locator("tr")
+    # -----------------------------------------
+    # OBTENER FECHAS DEL CALENDARIO
+    # -----------------------------------------
 
-    print("\n--- CALENDARIO ---")
+    encabezado = page.locator("table").first.locator("tr").first
+
+    columnas = encabezado.locator("th, td")
+
+    fechas = []
+
+    for i in range(columnas.count()):
+
+        texto = columnas.nth(i).inner_text().strip()
+
+        if re.match(r"\d{2}/\d{2}", texto):
+            fechas.append(texto)
+
+    print("\nFechas detectadas:")
+
+    for fecha in fechas:
+        print(fecha)
+
+    # -----------------------------------------
+    # RECORRER FILAS
+    # -----------------------------------------
+
+    citas = []
+
+    filas = page.locator("table").first.locator("tr")
 
     for i in range(filas.count()):
 
         fila = filas.nth(i)
 
-        celdas = fila.locator("td, th")
+        celdas = fila.locator("th, td")
 
-        if celdas.count() == 0:
+        if celdas.count() < 2:
             continue
 
-        textos = []
+        hora = celdas.nth(0).inner_text().strip()
 
-        for j in range(celdas.count()):
+        if not re.match(r"^\d{2}:\d{2}$", hora):
+            continue
 
-            texto = celdas.nth(j).inner_text().strip()
+        # Las celdas de disponibilidad
+        for j in range(1, celdas.count()):
 
-            if texto:
-                textos.append(texto.replace("\n", " "))
+            celda = celdas.nth(j)
 
-        if textos:
-            print(" | ".join(textos))
+            texto = celda.inner_text().strip()
+
+            if "残" not in texto:
+                continue
+
+            # Buscar número de cupos
+            match = re.search(r"残\s*(\d+)", texto)
+
+            if not match:
+                continue
+
+            cupos = int(match.group(1))
+
+            if cupos > 0:
+
+                fecha = (
+                    fechas[j - 1]
+                    if j - 1 < len(fechas)
+                    else "Fecha desconocida"
+                )
+
+                citas.append({
+                    "fecha": fecha,
+                    "hora": hora,
+                    "cupos": cupos
+                })
+
+    # -----------------------------------------
+    # RESULTADO
+    # -----------------------------------------
+
+    print("\n==============================")
+    print("RESULTADO DE LA REVISIÓN")
+    print("==============================")
+
+    if not citas:
+
+        print("❌ No hay citas disponibles.")
+
+    else:
+
+        print(
+            f"🚨 SE ENCONTRARON {len(citas)} CITAS"
+        )
+
+        for cita in citas:
+
+            print(
+                f"\n📅 Fecha: {cita['fecha']}"
+                f"\n⏰ Hora: {cita['hora']}"
+                f"\n👥 Cupos: {cita['cupos']}"
+            )
+
+            if cita["cupos"] >= 3:
+
+                print(
+                    "⭐ ¡ESTA CITA SIRVE PARA 3 SOLICITUDES!"
+                )
 
     browser.close()
