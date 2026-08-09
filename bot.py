@@ -20,15 +20,29 @@ with sync_playwright() as p:
 
     print("Página cargada.")
 
-    # Buscar una celda cualquiera del calendario
-    celda = page.locator("p.c_cal_time_cell").first
+    filas = page.locator("tr")
 
-    print("\n--- ESTRUCTURA DEL CALENDARIO ---")
+    print("\n--- CALENDARIO ---")
 
-    print(
-        celda.evaluate(
-            "(element) => element.parentElement.parentElement.outerHTML"
-        )
-    )
+    for i in range(filas.count()):
+
+        fila = filas.nth(i)
+
+        celdas = fila.locator("td, th")
+
+        if celdas.count() == 0:
+            continue
+
+        textos = []
+
+        for j in range(celdas.count()):
+
+            texto = celdas.nth(j).inner_text().strip()
+
+            if texto:
+                textos.append(texto.replace("\n", " "))
+
+        if textos:
+            print(" | ".join(textos))
 
     browser.close()
